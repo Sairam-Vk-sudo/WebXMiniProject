@@ -3,3 +3,4 @@ pymongo
 Flask-PyMongo
 Flask_Bcrypt
 python-dotenv
+flask-cors

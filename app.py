@@ -3,8 +3,10 @@ from flask import Flask, jsonify, request
 from pymongo import MongoClient
 from flask_bcrypt import Bcrypt
 from dotenv import load_dotenv
+from flask_cors import CORS;
 
 app = Flask(__name__)
+CORS(app, origins=["http://localhost:*"])
 bcrypt = Bcrypt(app)
 
 load_dotenv()
