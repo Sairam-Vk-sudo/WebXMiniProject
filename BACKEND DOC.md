@@ -67,7 +67,7 @@ MONGODB_URI="MONGO URI DAALO IDHAR"
 
 **Responses:**
 
--   `200 OK`: Login successful.
+-   `200 OK`: Login successful. userid: id of the user that logged in.
 -   `400 Bad Request`: Missing email or password.
 -   `401 Unauthorized`: Invalid credentials.
 

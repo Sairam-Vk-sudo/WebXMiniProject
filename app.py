@@ -48,7 +48,7 @@ def login():
         return jsonify({"error": "Invalid email or password."}), 401
     
     if(bcrypt.check_password_hash(user["password"], password_plain)):
-        return jsonify({"message": "Login successful."}), 200
+        return jsonify({"message": "Login successful.", "userid": str(user["_id"])}), 200
     else:
         return jsonify({"error": "Invalid email or password."}), 401
 
