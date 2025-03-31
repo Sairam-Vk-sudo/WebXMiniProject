@@ -10,6 +10,7 @@ function Navbar() {
           <Link to="/dashboard" className="hover:underline">Dashboard</Link>
           <Link to="/recipes" className="hover:underline">Recipes</Link>
           <Link to="/addrecipe" className="hover:underline">Add Recipes</Link>
+          <Link to="/profile" className="hover:underline">Profile</Link>
         </div>
       </div>
     </nav>
