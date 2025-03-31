@@ -45,7 +45,11 @@ def sign_up():
 
     db_response = users.insert_one({"username": username, "email": email, "password": password_hash})
 
-    return jsonify({"message": "User created successfully."}), 201 if db_response.inserted_id else jsonify({"error": "Error creating user."}), 500
+    if db_response.inserted_id:
+        return jsonify({"message": "User created successfully."}), 201
+    else:
+        return jsonify({"error": "Error creating user."}), 500
+
 
 # ➤ LOGIN
 @app.route("/login", methods=["POST"])
@@ -71,13 +75,12 @@ def login():
     else:
         return jsonify({"error": "Invalid email or password."}), 401
 
-# ➤ ADD RECIPE
 @app.route("/recipes", methods=["POST", "GET"])
-def recipes():
+def recipes_route():
     if request.method == "POST":
-        add_recipe()
+        return add_recipe()
     elif request.method == "GET":
-        get_all_recipes()
+        return get_recipes()
     else:
         return jsonify({"error": "Method Not Allowed."}), 405
 
@@ -104,30 +107,47 @@ def add_recipe():
 
     db_response = recipes.insert_one(new_recipe)
 
-    return jsonify({"message": "Recipe created successfully.", "recipe_id": str(db_response.inserted_id)}), 201 if db_response.inserted_id else jsonify({"error": "Error creating recipe."}), 500
+    if db_response.inserted_id:
+        return jsonify({"message": "Recipe created successfully.", "recipe_id": str(db_response.inserted_id)}), 201
+    else: 
+        return jsonify({"error": "Error creating recipe."}), 500
 
-# ➤ GET ALL RECIPES
-def get_all_recipes():
+def get_recipes():
+    added_by = request.args.get("added_by")
+    search_query = request.args.get("search") 
+
+    query = {}
+
+    if added_by:
+        query["added_by"] = added_by
+
+    if search_query:
+        query["name"] = {"$regex": search_query, "$options": "i"}
+
     try:
-        recipe_list = list(recipes.find({}, {"_id": 1, "name": 1, "added_by": 1, "description": 1, "ingredients": 1, "image": 1, "rating": 1}))
+        recipe_list = list(recipes.find(query, {"_id": 1, "name": 1, "ingredients": 1, "rating": 1}))
 
         for recipe in recipe_list:
             recipe["_id"] = str(recipe["_id"])
             recipe["rating"] = recipe.get("rating", {"avg_rating": 0, "num_ratings": 0})
 
-        return jsonify(recipe_list), 200
+        if recipe_list:  
+            return jsonify(recipe_list), 200  
+        else:
+            return jsonify({"message": "No recipes found"}), 404
 
     except Exception as e:
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
 
 
 # ➤ RATE A RECIPE
 @app.route("/recipes/<recipe_id>/ratings", methods=["POST", "GET"])
 def ratings(recipe_id):
     if request.method == "POST":
-        rate_recipe(recipe_id)
+        return rate_recipe(recipe_id)
     elif request.method == "GET":
-        get_rating_data(recipe_id)
+        return get_rating_data(recipe_id)
     else:
         return jsonify({"error": "Method Not Allowed."}), 405
 
@@ -150,7 +170,7 @@ def rate_recipe(recipe_id):
         ratings[str(userid)] = rating
         
         num_ratings = len(ratings)
-        avg_rating = round(ratings.values() / num_ratings)
+        avg_rating = round(sum(ratings.values()) / num_ratings)
 
         recipes.update_one(
             {"_id": ObjectId(recipe_id)},
@@ -175,7 +195,7 @@ def get_rating_data(recipe_id):
         if not recipe:
             return jsonify({"error": "Recipe not found"}), 404
 
-        return jsonify({"message": "Rating fetched successfully", "avg_rating": recipe.avg_rating, "num_ratings": recipe.num_ratings}), 200
+        return jsonify({"message": "Rating fetched successfully", "avg_rating": recipe.get("avg_rating"), "num_ratings": recipe.get("num_ratings")}), 200
 
     except Exception as e:
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
