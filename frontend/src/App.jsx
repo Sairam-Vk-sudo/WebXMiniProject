@@ -4,7 +4,7 @@ import AuthPage from "./pages/AuthPage";
 import RecipesPage from "./pages/RecipesPage";
 import Dashboard from "./pages/Dashboard";
 import AddRecipePage from "./pages/AddRecipePage";
-import RecipeDetails from "./pages/RecipeDetails";
+import Profile from "./pages/Profile";
 
 function App() {
   return (
@@ -15,7 +15,7 @@ function App() {
         <Route path="/recipes" element={<RecipesPage />} />
         <Route path="/dashboard" element={<Dashboard />}/>
         <Route path='/addrecipe' element={<AddRecipePage />}/>
-        <Route path='/recipe/:id' element={<RecipeDetails/>}/>
+        <Route path='/profile' element={<Profile />}/>
       </Routes>
     </Router>
   );
