@@ -1,22 +1,67 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 
-function AddRecipe() {
+const AddRecipe = () => {
   const [recipe, setRecipe] = useState({
     name: "",
-    ingredients: "",
-    instructions: "",
+    is_vegetarian: false,
+    ingredients: [{ name: "", amount: "" }],
+    steps: [""],
+    added_by: "",
     image: "",
   });
 
-  const [recipes, setRecipes] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
 
+  // Fetch user ID from localStorage on component load
+  useEffect(() => {
+    const userID = localStorage.getItem("userID");
+    if (userID) {
+      setRecipe((prevRecipe) => ({ ...prevRecipe, added_by: userID }));
+    } else {
+      alert("You must be logged in to add a recipe.");
+    }
+  }, []);
+
+  // Handle input changes
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setRecipe({ ...recipe, [name]: value });
+    const { name, value, type, checked } = e.target;
+    setRecipe({
+      ...recipe,
+      [name]: type === "checkbox" ? checked : value,
+    });
   };
 
+  // Handle ingredient changes
+  const handleIngredientChange = (index, e) => {
+    const { name, value } = e.target;
+    const updatedIngredients = [...recipe.ingredients];
+    updatedIngredients[index][name] = value;
+    setRecipe({ ...recipe, ingredients: updatedIngredients });
+  };
+
+  // Handle step changes
+  const handleStepChange = (index, e) => {
+    const updatedSteps = [...recipe.steps];
+    updatedSteps[index] = e.target.value;
+    setRecipe({ ...recipe, steps: updatedSteps });
+  };
+
+  // Add new ingredient field
+  const addIngredient = () => {
+    setRecipe({
+      ...recipe,
+      ingredients: [...recipe.ingredients, { name: "", amount: "" }],
+    });
+  };
+
+  // Add new step field
+  const addStep = () => {
+    setRecipe({ ...recipe, steps: [...recipe.steps, ""] });
+  };
+
+  // Handle image upload
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     const reader = new FileReader();
@@ -30,22 +75,49 @@ function AddRecipe() {
     }
   };
 
-  const handleSubmit = (e) => {
+  // Submit the recipe to the backend
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (recipe.name && recipe.ingredients && recipe.instructions) {
-      setRecipes([...recipes, recipe]);
-      setRecipe({ name: "", ingredients: "", instructions: "", image: "" });
+    setLoading(true);
+    setMessage("");
+
+    try {
+      const response = await fetch("http://127.0.0.1:5000/recipes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(recipe),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage("Recipe added successfully!");
+        setRecipe({
+          name: "",
+          is_vegetarian: false,
+          ingredients: [{ name: "", amount: "" }],
+          steps: [""],
+          added_by: localStorage.getItem("username"),
+          image: "",
+        });
+      } else {
+        setMessage(data.error);
+      }
+    } catch (error) {
+      console.error("Error adding recipe:", error);
+      setMessage("Error adding recipe. Please try again.");
     }
+
+    setLoading(false);
   };
 
   return (
     <div className="min-h-screen bg-amber-50">
-      {/* Navbar */}
       <Navbar />
-
-      {/* Add Recipe Form */}
       <div className="p-8 max-w-lg mx-auto bg-white rounded-lg shadow-lg mt-8">
         <h2 className="text-2xl font-bold text-amber-800 text-center mb-4">Add Your Recipe</h2>
+
+        {message && <p className="text-center text-red-600">{message}</p>}
 
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
@@ -61,59 +133,81 @@ function AddRecipe() {
             />
           </div>
 
+          {/* Ingredients Section */}
           <div className="mb-4">
             <label className="block font-semibold text-gray-900">Ingredients</label>
-            <textarea
-              name="ingredients"
-              value={recipe.ingredients}
-              onChange={handleChange}
-              placeholder="List ingredients..."
-              className="w-full p-2 border border-gray-400 rounded-md bg-gray-100 text-gray-900"
-              required
-            ></textarea>
+            {recipe.ingredients.map((ingredient, index) => (
+              <div key={index} className="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  name="name"
+                  value={ingredient.name}
+                  onChange={(e) => handleIngredientChange(index, e)}
+                  placeholder="Ingredient Name"
+                  className="w-1/2 p-2 border border-gray-400 rounded-md bg-gray-100 text-gray-900"
+                  required
+                />
+                <input
+                  type="text"
+                  name="amount"
+                  value={ingredient.amount}
+                  onChange={(e) => handleIngredientChange(index, e)}
+                  placeholder="Amount"
+                  className="w-1/2 p-2 border border-gray-400 rounded-md bg-gray-100 text-gray-900"
+                  required
+                />
+              </div>
+            ))}
+            <button type="button" onClick={addIngredient} className="text-blue-500">
+              + Add Ingredient
+            </button>
           </div>
 
+          {/* Steps Section */}
           <div className="mb-4">
-            <label className="block font-semibold text-gray-900">Instructions</label>
-            <textarea
-              name="instructions"
-              value={recipe.instructions}
-              onChange={handleChange}
-              placeholder="Describe how to prepare the dish..."
-              className="w-full p-2 border border-gray-400 rounded-md bg-gray-100 text-gray-900"
-              required
-            ></textarea>
+            <label className="block font-semibold text-gray-900">Steps</label>
+            {recipe.steps.map((step, index) => (
+              <textarea
+                key={index}
+                value={step}
+                onChange={(e) => handleStepChange(index, e)}
+                placeholder={`Step ${index + 1}`}
+                className="w-full p-2 border border-gray-400 rounded-md bg-gray-100 text-gray-900 mb-2"
+                required
+              />
+            ))}
+            <button type="button" onClick={addStep} className="text-blue-500">
+              + Add Step
+            </button>
           </div>
 
+          {/* Is Vegetarian Checkbox */}
+          <div className="mb-4">
+            <label className="flex items-center font-semibold text-gray-900">
+              <input
+                type="checkbox"
+                name="is_vegetarian"
+                checked={recipe.is_vegetarian}
+                onChange={handleChange}
+                className="mr-2"
+              />
+              Vegetarian
+            </label>
+          </div>
+
+          {/* Image Upload */}
           <div className="mb-4">
             <label className="block font-semibold text-gray-900">Upload Image</label>
             <input type="file" accept="image/*" onChange={handleImageUpload} className="w-full p-2 border border-gray-400 rounded-md bg-gray-100" />
           </div>
 
-          <button type="submit" className="w-full bg-amber-800 text-white p-2 rounded-md font-bold hover:bg-amber-900">
-            Add Recipe
+          <button type="submit" className="w-full bg-amber-800 text-white p-2 rounded-md font-bold hover:bg-amber-900" disabled={loading}>
+            {loading ? "Adding..." : "Add Recipe"}
           </button>
         </form>
       </div>
-
-      {/* Recipe Preview */}
-      {recipes.length > 0 && (
-        <div className="mt-8 p-8 max-w-3xl mx-auto bg-white rounded-lg shadow-lg">
-          <h2 className="text-2xl font-bold text-amber-800 text-center mb-4">Your Added Recipes</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {recipes.map((rec, index) => (
-              <div key={index} className="border rounded-lg p-4 shadow-md bg-amber-100">
-                {rec.image && <img src={rec.image} alt={rec.name} className="w-full h-40 object-cover rounded-md mb-3" />}
-                <h3 className="text-xl font-semibold text-amber-800">{rec.name}</h3>
-                <p className="text-gray-900"><strong>Ingredients:</strong> {rec.ingredients}</p>
-                <p className="text-gray-900"><strong>Instructions:</strong> {rec.instructions}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
-}
+};
 
 export default AddRecipe;

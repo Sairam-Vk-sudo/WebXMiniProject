@@ -39,9 +39,16 @@ function AuthPage() {
           password,
         });
 
-        alert("Login Successful");
-        localStorage.setItem("userid", response.data.userid); // Store user ID in localStorage
-        navigate("/dashboard");
+        if (response.data.userid) {
+          // ✅ Store user ID & username
+          localStorage.setItem("userID", response.data.userid); // Fixed key name
+          localStorage.setItem("username", response.data.username);
+
+          alert("Login Successful!");
+          navigate("/dashboard"); // Redirect after successful login
+        } else {
+          setError("Invalid credentials. Please try again.");
+        }
       } else {
         // **Sign Up API Call**
         if (password !== confirmPassword) {
