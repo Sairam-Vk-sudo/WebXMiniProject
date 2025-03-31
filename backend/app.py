@@ -26,7 +26,6 @@ db = client.get_database("webx_miniproject")
 users = db.get_collection("users")
 recipes = db.get_collection("recipes")
 
-
 # ➤ SIGN UP
 @app.route("/signup", methods=["POST"])
 def sign_up():
@@ -47,7 +46,6 @@ def sign_up():
     db_response = users.insert_one({"username": username, "email": email, "password": password_hash})
 
     return jsonify({"message": "User created successfully."}), 201 if db_response.inserted_id else jsonify({"error": "Error creating user."}), 500
-
 
 # ➤ LOGIN
 @app.route("/login", methods=["POST"])
@@ -79,7 +77,6 @@ def add_recipe():
     
     name = req.get("name")
     is_vegetarian = req.get("is_vegetarian")
-    rating = {"avg_rating": 0, "num_ratings": 0}
     ingredients = req.get("ingredients", [])
     steps = req.get("steps", [])
     added_by = req.get("added_by")
@@ -100,7 +97,9 @@ def add_recipe():
     new_recipe = {
                     "name": name,
                     "is_vegetarian": is_vegetarian,
-                    "rating": rating,
+                    "ratings": {},
+                    "avg_rating": 0,
+                    "num_ratings": 0,
                     "ingredients": ingredients,
                     "steps": steps,
                     "added_by": added_by
@@ -113,9 +112,16 @@ def add_recipe():
     else:
         return jsonify({"error": "There was an error creating the recipe."}), 500
 
-
 # ➤ ADD RECIPE
-@app.route("/recipes", methods=["POST"])
+@app.route("/recipes", methods=["POST", "GET"])
+def recipes():
+    if request.method == "POST":
+        add_recipe()
+    elif request.method == "GET":
+        get_all_recipes()
+    else:
+        return jsonify({"error": "Method Not Allowed."}), 405
+
 def add_recipe():
     req = request.json
     name = req.get("name")
@@ -141,9 +147,7 @@ def add_recipe():
 
     return jsonify({"message": "Recipe created successfully.", "recipe_id": str(db_response.inserted_id)}), 201 if db_response.inserted_id else jsonify({"error": "Error creating recipe."}), 500
 
-
 # ➤ GET ALL RECIPES
-@app.route("/recipes", methods=["GET"])
 def get_all_recipes():
     try:
         recipe_list = list(recipes.find({}, {"_id": 1, "name": 1, "added_by": 1, "description": 1, "ingredients": 1, "image": 1, "rating": 1}))
@@ -159,12 +163,22 @@ def get_all_recipes():
 
 
 # ➤ RATE A RECIPE
-@app.route("/rate_recipe/<recipe_id>", methods=["POST"])
+@app.route("/recipes/<recipe_id>/ratings", methods=["POST", "GET"])
+def ratings(recipe_id):
+    if request.method == "POST":
+        rate_recipe(recipe_id)
+    elif request.method == "GET":
+        get_rating_data(recipe_id)
+    else:
+        return jsonify({"error": "Method Not Allowed."}), 405
+
 def rate_recipe(recipe_id):
     req = request.json
-    new_rating = req.get("rating")
+    
+    userid = req.get("userid")
+    rating = req.get("rating")
 
-    if new_rating is None or not (1 <= new_rating <= 5):
+    if rating is None or not (1 <= rating <= 5):
         return jsonify({"error": "Rating must be between 1 and 5."}), 400
 
     try:
@@ -172,23 +186,41 @@ def rate_recipe(recipe_id):
         if not recipe:
             return jsonify({"error": "Recipe not found"}), 404
 
-        rating = recipe.get("rating", {"avg_rating": 0, "num_ratings": 0})
-        current_avg = rating.get("avg_rating", 0)
-        num_ratings = rating.get("num_ratings", 0)
-
-        updated_num_ratings = num_ratings + 1
-        updated_avg_rating = round((current_avg * num_ratings + new_rating) / updated_num_ratings, 2)
+        ratings = recipe.get("ratings", {})
+        
+        ratings[str(userid)] = rating
+        
+        num_ratings = len(ratings)
+        avg_rating = round(ratings.values() / num_ratings)
 
         recipes.update_one(
             {"_id": ObjectId(recipe_id)},
-            {"$set": {"rating.avg_rating": updated_avg_rating, "rating.num_ratings": updated_num_ratings}}
+            {
+                "$set": {
+                    "ratings": ratings,
+                    "avg_rating": avg_rating,
+                    "num_ratings": num_ratings
+                }
+            }
         )
 
-        return jsonify({"message": "Rating updated successfully", "avg_rating": updated_avg_rating, "num_ratings": updated_num_ratings}), 200
+        return jsonify({"message": "Rating updated successfully", "avg_rating": avg_rating, "num_ratings": num_ratings}), 200
 
     except Exception as e:
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
+def get_rating_data(recipe_id):
+    try:
+        recipe = recipes.find_one({"_id": ObjectId(recipe_id)})
+        
+        if not recipe:
+            return jsonify({"error": "Recipe not found"}), 404
+
+        return jsonify({"message": "Rating updated successfully", "avg_rating": recipe.avg_rating, "num_ratings": recipe.num_ratings}), 200
+
+    except Exception as e:
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+    
 
 if __name__ == "__main__":
     app.run(debug=True)
