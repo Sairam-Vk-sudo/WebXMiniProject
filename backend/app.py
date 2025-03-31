@@ -71,47 +71,6 @@ def login():
     else:
         return jsonify({"error": "Invalid email or password."}), 401
 
-@app.route("/recipes", methods=["POST"])
-def add_recipe():
-    req = request.json
-    
-    name = req.get("name")
-    is_vegetarian = req.get("is_vegetarian")
-    ingredients = req.get("ingredients", [])
-    steps = req.get("steps", [])
-    added_by = req.get("added_by")
-    
-    if not name or not ingredients or not steps or not added_by or is_vegetarian is None:
-        return jsonify({"error": "All fields are required."}), 400
-    
-    for i in ingredients:
-        if not isinstance(i, dict):
-            return jsonify({"error": "Invalid format for ingredients, need dictionary."}), 400
-        
-        if i.keys() != {"name", "amount"}:
-            return jsonify({"error": "Ingredients should only have 'name' and 'amount' keys."}), 400
-        
-        if not isinstance(i["name"], str) or not isinstance(i["amount"], (str, int)):
-            return jsonify({"error": "Both 'name' and 'amount' must be strings."}), 400
-        
-    new_recipe = {
-                    "name": name,
-                    "is_vegetarian": is_vegetarian,
-                    "ratings": {},
-                    "avg_rating": 0,
-                    "num_ratings": 0,
-                    "ingredients": ingredients,
-                    "steps": steps,
-                    "added_by": added_by
-            }
-    
-    db_response = recipes.insert_one(new_recipe)
-    
-    if db_response.inserted_id:
-        return jsonify({"message": "Recipe created successfully."}), 201
-    else:
-        return jsonify({"error": "There was an error creating the recipe."}), 500
-
 # ➤ ADD RECIPE
 @app.route("/recipes", methods=["POST", "GET"])
 def recipes():
