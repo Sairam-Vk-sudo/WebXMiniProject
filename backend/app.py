@@ -216,7 +216,7 @@ def get_rating_data(recipe_id):
         if not recipe:
             return jsonify({"error": "Recipe not found"}), 404
 
-        return jsonify({"message": "Rating updated successfully", "avg_rating": recipe.avg_rating, "num_ratings": recipe.num_ratings}), 200
+        return jsonify({"message": "Rating fetched successfully", "avg_rating": recipe.avg_rating, "num_ratings": recipe.num_ratings}), 200
 
     except Exception as e:
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
