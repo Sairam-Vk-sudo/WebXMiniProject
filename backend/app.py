@@ -3,7 +3,7 @@ from flask import Flask, jsonify, request
 from pymongo import MongoClient
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
-from bson import ObjectId
+from bson.objectid import ObjectId
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -94,7 +94,12 @@ def add_recipe():
     added_by = req.get("added_by", {})
 
     added_by_id = added_by.get("user_id")
-    added_by_name = added_by.get("username")
+    added_by_data = users.find_one({"_id": ObjectId(added_by_id)}, {"username": 1})
+    
+    if not added_by_data:
+        return jsonify({"error": "User could not be found."}), 404
+    
+    added_by_name = added_by_data["username"]
     
     if not name or not ingredients or not steps or not added_by or not added_by_id or not added_by_name or is_vegetarian is None:
         return jsonify({"error": "All fields are required."}), 400
