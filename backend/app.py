@@ -3,14 +3,14 @@ from flask import Flask, jsonify, request
 from pymongo import MongoClient
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
-from bson import ObjectId
+from bson.objectid import ObjectId
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:*"])
+CORS(app, origins=["*"])
 
 bcrypt = Bcrypt(app)
 
@@ -125,7 +125,7 @@ def get_recipes():
         query["name"] = {"$regex": search_query, "$options": "i"}
 
     try:
-        recipe_list = list(recipes.find(query, {"_id": 1, "name": 1, "ingredients": 1, "rating": 1}))
+        recipe_list = list(recipes.find(query, {"_id": 1, "name": 1, "ingredients": 1, "rating": 1, "added_by": 1}))
 
         for recipe in recipe_list:
             recipe["_id"] = str(recipe["_id"])
@@ -139,7 +139,16 @@ def get_recipes():
     except Exception as e:
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
+@app.route("/recipes/<recipe_id>", methods=["GET"])
+def get_by_id(recipe_id):
+    id_obj = ObjectId(recipe_id)
+    recipe = recipes.find_one({"_id": id_obj})
+    recipe["_id"] = str(recipe["_id"])
 
+    if recipe:
+        return jsonify(recipe), 200
+    else:
+        return jsonify({"error": "recipe not found."}), 404
 
 # ➤ RATE A RECIPE
 @app.route("/recipes/<recipe_id>/ratings", methods=["POST", "GET"])

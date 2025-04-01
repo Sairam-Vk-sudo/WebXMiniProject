@@ -5,6 +5,7 @@ import RecipesPage from "./pages/RecipesPage";
 import Dashboard from "./pages/Dashboard";
 import AddRecipePage from "./pages/AddRecipePage";
 import Profile from "./pages/Profile";
+import RecipeDetails from "./pages/RecipeDetails";
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />}/>
         <Route path='/addrecipe' element={<AddRecipePage />}/>
         <Route path='/profile' element={<Profile />}/>
+        <Route path="/recipes/:id" element={<RecipeDetails />}/>
       </Routes>
     </Router>
   );

@@ -15,7 +15,7 @@ const RecipeDetails = () => {
     setLoading(true);
 
     axios
-      .get(`http://localhost:5000/recipe/${id}`)
+      .get(`http://localhost:5000/recipes/${id}`)
       .then((response) => {
         console.log("Recipe data received:", response.data);
         setRecipe(response.data);
@@ -35,14 +35,14 @@ const RecipeDetails = () => {
     setSelectedRating(rating); // Show selected rating instantly
 
     axios
-      .post(`http://localhost:5000/rate_recipe/${id}`, { rating })
+      .post(`http://localhost:5000/recipes/${id}/ratings`, { "userid": localStorage.getItem("userID"), "rating": rating })
       .then((response) => {
         console.log("Rating submitted:", response.data);
         setRecipe((prevRecipe) => ({
           ...prevRecipe,
           rating: {
-            avg_rating: response.data.new_avg_rating,
-            num_ratings: response.data.total_ratings,
+            avg_rating: response.data.avg_rating,
+            num_ratings: response.data.num_ratings,
           },
         }));
       })
