@@ -133,7 +133,7 @@ def get_recipes():
         query["name"] = {"$regex": search_query, "$options": "i"}
 
     try:
-        recipe_list = list(recipes.find(query, {"_id": 1, "name": 1, "ingredients": 1, "rating": 1}))
+        recipe_list = list(recipes.find(query, {"_id": 1, "name": 1, "ingredients": 1, "rating": 1, "added_by": 1}))
 
         for recipe in recipe_list:
             recipe["_id"] = str(recipe["_id"])
