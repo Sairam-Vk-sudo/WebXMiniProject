@@ -91,9 +91,12 @@ def add_recipe():
     rating = {"avg_rating": 0, "num_ratings": 0}
     ingredients = req.get("ingredients", [])
     steps = req.get("steps", [])
-    added_by = req.get("added_by")
+    added_by = req.get("added_by", {})
 
-    if not name or not ingredients or not steps or not added_by or is_vegetarian is None:
+    added_by_id = added_by.get("user_id")
+    added_by_name = added_by.get("username")
+    
+    if not name or not ingredients or not steps or not added_by or not added_by_id or not added_by_name or is_vegetarian is None:
         return jsonify({"error": "All fields are required."}), 400
 
     new_recipe = {
@@ -102,7 +105,7 @@ def add_recipe():
         "rating": rating,
         "ingredients": ingredients,
         "steps": steps,
-        "added_by": added_by
+        "added_by": {"user_id": str(added_by_id), "user_name": added_by_name}
     }
 
     db_response = recipes.insert_one(new_recipe)
