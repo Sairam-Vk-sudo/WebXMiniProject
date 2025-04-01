@@ -1,16 +1,19 @@
 import os
+from bson import Binary
 from flask import Flask, jsonify, request
 from pymongo import MongoClient
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from bson.objectid import ObjectId
 from dotenv import load_dotenv
+from werkzeug.utils import secure_filename
 
 # Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, origins=["*"])
+app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
+CORS(app, origins=["http://localhost:*"])
 
 bcrypt = Bcrypt(app)
 
@@ -85,16 +88,35 @@ def recipes_route():
         return jsonify({"error": "Method Not Allowed."}), 405
 
 def add_recipe():
-    req = request.json
+    req = request.form
+    req_files = request.files
+    
     name = req.get("name")
     is_vegetarian = req.get("is_vegetarian")
     rating = {"avg_rating": 0, "num_ratings": 0}
     ingredients = req.get("ingredients", [])
     steps = req.get("steps", [])
-    added_by = req.get("added_by")
+    added_by = req.get("added_by", {})
+    image = req_files.get("image")
+    
+    if not image:
+        return jsonify({"error": "No image provided."}), 400
+    elif image.content_length > 10 * 1024 * 1024:
+        return jsonify({"error": "Image exceeds the 10 MB size limit."}), 400
 
-    if not name or not ingredients or not steps or not added_by or is_vegetarian is None:
+    added_by_id = added_by.get("user_id")
+    added_by_data = users.find_one({"_id": ObjectId(added_by_id)}, {"username": 1})
+    
+    if not added_by_data:
+        return jsonify({"error": "User could not be found."}), 404
+    
+    added_by_name = added_by_data["username"]
+    
+    if not name or not ingredients or not steps or not added_by or not added_by_id or not added_by_name or is_vegetarian is None:
         return jsonify({"error": "All fields are required."}), 400
+    
+    image_name = secure_filename(name)
+    image_bin = Binary(image.read())
 
     new_recipe = {
         "name": name,
@@ -102,7 +124,8 @@ def add_recipe():
         "rating": rating,
         "ingredients": ingredients,
         "steps": steps,
-        "added_by": added_by
+        "added_by": {"user_id": str(added_by_id), "user_name": added_by_name},
+        "image_data":{"name": image_name, "data": image_bin}
     }
 
     db_response = recipes.insert_one(new_recipe)
@@ -119,13 +142,13 @@ def get_recipes():
     query = {}
 
     if added_by:
-        query["added_by"] = added_by
+        query["added_by.user_name"] = added_by
 
     if search_query:
         query["name"] = {"$regex": search_query, "$options": "i"}
 
     try:
-        recipe_list = list(recipes.find(query, {"_id": 1, "name": 1, "ingredients": 1, "rating": 1, "added_by": 1}))
+        recipe_list = list(recipes.find(query, {"_id": 1, "name": 1, "ingredients": 1, "rating": 1, "added_by": 1, "image_data": 1}))
 
         for recipe in recipe_list:
             recipe["_id"] = str(recipe["_id"])
