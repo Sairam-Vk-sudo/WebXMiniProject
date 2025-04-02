@@ -88,8 +88,7 @@ def recipes_route():
         return jsonify({"error": "Method Not Allowed."}), 405
 
 def add_recipe():
-    req = request.form
-    req_files = request.files
+    req = request.json
     
     name = req.get("name")
     is_vegetarian = req.get("is_vegetarian")
@@ -97,15 +96,13 @@ def add_recipe():
     ingredients = req.get("ingredients", [])
     steps = req.get("steps", [])
     added_by = req.get("added_by", {})
-    image = req_files.get("image")
-    
-    if not image:
-        return jsonify({"error": "No image provided."}), 400
-    elif image.content_length > 10 * 1024 * 1024:
-        return jsonify({"error": "Image exceeds the 10 MB size limit."}), 400
+    print(added_by)
 
     added_by_id = added_by.get("user_id")
+    print(added_by_id)
+    
     added_by_data = users.find_one({"_id": ObjectId(added_by_id)}, {"username": 1})
+    print(added_by_data)
     
     if not added_by_data:
         return jsonify({"error": "User could not be found."}), 404
@@ -114,9 +111,6 @@ def add_recipe():
     
     if not name or not ingredients or not steps or not added_by or not added_by_id or not added_by_name or is_vegetarian is None:
         return jsonify({"error": "All fields are required."}), 400
-    
-    image_name = secure_filename(name)
-    image_bin = Binary(image.read())
 
     new_recipe = {
         "name": name,
@@ -125,7 +119,6 @@ def add_recipe():
         "ingredients": ingredients,
         "steps": steps,
         "added_by": {"user_id": str(added_by_id), "user_name": added_by_name},
-        "image_data":{"name": image_name, "data": image_bin}
     }
 
     db_response = recipes.insert_one(new_recipe)
