@@ -8,19 +8,18 @@ import Profile from "./pages/Profile";
 import RecipeDetails from "./pages/RecipeDetails";
 
 function App() {
-  return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<AuthPage />} />
-        <Route path="/recipes" element={<RecipesPage />} />
-        <Route path="/dashboard" element={<Dashboard />}/>
-        <Route path='/addrecipe' element={<AddRecipePage />}/>
-        <Route path='/profile' element={<Profile />}/>
-        <Route path="/recipes/:id" element={<RecipeDetails />}/>
-      </Routes>
-    </Router>
-  );
+    return (
+        <Router>
+            <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/login" element={<AuthPage />} />
+                <Route path="/recipes" element={<RecipesPage />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/addrecipe" element={<AddRecipePage />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/recipes/:id" element={<RecipeDetails />} />
+            </Routes>
+        </Router>
+    );
 }
-
 export default App;
